@@ -216,6 +216,12 @@ export function approvalValid(
   );
 }
 export class McpRouter implements Service {
+  menuGroups = {
+    Capabilities: ["status"],
+    Servers: ["servers"],
+    Tools: ["tools", "explain"],
+    Settings: ["config", "doctor", "off"],
+  };
   capabilities = ["mcp.capability-route.v1", "mcp.policy.v1"];
   menu = ["status", "capabilities", "servers", "tools", "explain", "auto"];
   catalog: CapabilityDefinition[] = [];
