@@ -72,6 +72,11 @@ export declare function routeCapabilities(requested: string[], catalog: Capabili
 export declare function approvalValid(approval: Approval | undefined, tool: string, server: string, taskId: string, args: unknown): boolean;
 export declare class McpRouter implements Service {
     readonly host: Host;
+    modeDescriptions: {
+        auto: string;
+        observe: string;
+        off: string;
+    };
     menuGroups: {
         Capabilities: string[];
         Servers: string[];
