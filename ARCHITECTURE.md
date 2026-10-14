@@ -2,6 +2,14 @@
 
 Tasks select capabilities rather than provider-specific names. Only locally authorized trusted candidates are selected, with two servers and twelve direct tools by default. Exact-argument one-use approvals protect writes; remote annotations cannot grant access.
 
+Pi owns MCP server configuration, credentials and connection lifecycle. The router
+discovers the MCP tools loaded in the current Pi session through `getAllTools()`;
+`/mcprouter servers` displays that read-only inventory. It does not register
+servers or keep endpoint configuration. Capability candidates and their local
+trust, read-only and approval policy remain in the router because Pi's MCP config
+does not define task-level authorization. Servers without loaded tools are not
+visible through the extension API's tool inventory.
+
 `src/extension.ts` registers Pi commands, tools and lifecycle handlers.
 `src/cli.ts` provides a noninteractive entry point. Domain code is exported from
 `src/index.ts`; compiled declarations describe the public API: CapabilityDefinition, CapabilityRequest, ToolCandidate, ToolExposureDecision, Approval, DurableTaskAdapter, McpRouter, routeCapabilities, approvalValid.

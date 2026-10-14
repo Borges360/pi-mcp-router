@@ -19,60 +19,23 @@ export interface ToolCandidate {
   trusted: boolean;
   available: boolean;
 }
-export interface ServerRegistration {
-  schemaVersion: 1;
-  id: string;
-  url: string;
-  headerEnv: Array<{ header: string; variable: string; prefix?: string }>;
+interface PiMcpTool {
+  name: string;
+  exposure?: string;
+  namespace?: { name: string; aliases?: readonly string[] };
 }
-export function normalizeServerRegistration(
-  value: unknown,
-): ServerRegistration {
-  const server = value as {
-    id: string;
-    url: string;
-    headerEnv?:
-      | Record<string, string>
-      | Array<{ header: string; variable: string; prefix?: string }>;
-  };
-  if (
-    !server ||
-    !/^[-a-zA-Z0-9_]+$/.test(server.id) ||
-    typeof server.url !== "string"
-  )
-    throw new Error("invalid-server-registration");
-  const url = new URL(server.url);
-  if (
-    !["http:", "https:"].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    [...url.searchParams.keys()].some((key) =>
-      /token|secret|password|api.?key/i.test(key),
-    )
-  )
-    throw new Error("credentials-must-use-header-environment-references");
-  const headers: ServerRegistration["headerEnv"] = Array.isArray(
-    server.headerEnv,
-  )
-    ? server.headerEnv
-    : Object.entries(server.headerEnv ?? {}).map(([header, variable]) => ({
-        header,
-        variable,
-      }));
-  for (const field of headers)
-    if (
-      !/^[a-zA-Z0-9-]+$/.test(field.header) ||
-      !/^[A-Z][A-Z0-9_]*$/.test(field.variable) ||
-      (field.prefix !== undefined &&
-        !["Bearer ", "Basic ", ""].includes(field.prefix))
-    )
-      throw new Error("invalid-header-environment-reference");
-  return {
-    schemaVersion: 1,
-    id: server.id,
-    url: url.toString(),
-    headerEnv: headers,
-  };
+interface DiscoveredServer {
+  name: string;
+  namespace: string;
+  tools: Array<{ name: string; exposure?: string }>;
+}
+function mcpNamespace(server: string) {
+  return `mcp__${server.replace(/-/g, "_")}`;
+}
+function belongsToServer(tool: PiMcpTool, server: string) {
+  if (tool.namespace?.aliases?.includes(server)) return true;
+  if (tool.namespace) return tool.namespace.name === mcpNamespace(server);
+  return tool.name.startsWith(`${mcpNamespace(server)}__`);
 }
 export interface CapabilityDefinition {
   schemaVersion: 1;
@@ -234,15 +197,16 @@ export class McpRouter implements Service {
   private taskId = "idle";
   private originalTools: string[] = [];
   private managed = new Set<string>();
-  private registered = new Set<string>();
+  private discoveredServers: DiscoveredServer[] = [];
+  private legacyRegistrationCount = 0;
   private failures = new Set<string>();
   private activeTask?: { id: string; capabilities: string[] };
   constructor(readonly host: Host) {}
   async start() {
-    for (const server of await this.host.store.listRecords<ServerRegistration>(
-      "server-registry",
-    ))
-      this.registerServer(server);
+    // Keep old records untouched so users can migrate them to Pi's mcp.json.
+    this.legacyRegistrationCount = (
+      await this.host.store.listRecords("server-registry")
+    ).length;
     this.originalTools = this.host.api?.getActiveTools() ?? [];
     this.catalog = (
       await this.host.store.listRecords<CapabilityDefinition>("capabilities")
@@ -266,39 +230,39 @@ export class McpRouter implements Service {
     });
     this.refresh();
   }
-  registerServer(input: unknown) {
-    const server = normalizeServerRegistration(input);
-    if (!this.host.api) return;
-    const headers: Record<string, string> = {};
-    for (const { header, variable, prefix } of server.headerEnv) {
-      if (!process.env[variable])
-        throw new Error("server-credential-env-unavailable");
-      headers[header] = (prefix ?? "") + process.env[variable]!;
-    }
-    this.host.api.registerMcpServer(server.id, {
-      url: server.url,
-      headers,
-      exposure: "deferred",
-    });
-    this.registered.add(server.id);
-  }
   refresh() {
     const api = this.host.api;
     if (!api) return;
-    const all = api.getAllTools();
-    this.managed = new Set(
-      all
-        .filter(
-          (t) =>
-            t.name.startsWith("mcp__") || t.namespace?.name.startsWith("mcp__"),
-        )
-        .map((t) => t.name),
+    const all = api.getAllTools() as PiMcpTool[];
+    const mcpTools = all.filter(
+      (t) =>
+        t.name.startsWith("mcp__") || t.namespace?.name.startsWith("mcp__"),
     );
+    this.managed = new Set(mcpTools.map((t) => t.name));
+    const servers = new Map<string, DiscoveredServer>();
+    for (const tool of mcpTools) {
+      const namespace =
+        tool.namespace?.name ?? tool.name.split("__").slice(0, 2).join("__");
+      const name =
+        tool.namespace?.aliases?.[0] ?? namespace.replace(/^mcp__/, "");
+      const server = servers.get(name) ?? { name, namespace, tools: [] };
+      server.tools.push({ name: tool.name, exposure: tool.exposure });
+      servers.set(name, server);
+    }
+    this.discoveredServers = [...servers.values()]
+      .map((server) => ({
+        ...server,
+        tools: server.tools.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
     for (const c of this.catalog)
       for (const t of c.candidates) {
         this.managed.add(t.name);
+        const tool = mcpTools.find((candidate) => candidate.name === t.name);
         t.available =
-          all.some((a) => a.name === t.name) &&
+          !!tool &&
+          belongsToServer(tool, t.server) &&
+          tool.exposure !== "hidden" &&
           !this.failures.has(this.taskId + ":" + t.name);
       }
   }
@@ -311,10 +275,7 @@ export class McpRouter implements Service {
           ...this.originalTools.filter((t) => this.managed.has(t)),
         ]),
       ]);
-      for (const server of this.registered)
-        this.host.api.unregisterMcpServer(server);
     }
-    this.registered.clear();
   }
   async route(requested: string[]) {
     this.refresh();
@@ -542,22 +503,19 @@ export class McpRouter implements Service {
         managed: [...this.managed],
       };
     if (action === "servers") {
-      if (args[0] === "add") {
-        if (!args[1]) throw new Error("server-file-required");
-        const server = normalizeServerRegistration(
-          JSON.parse(
-            await readFile(await contained(context.cwd, args[1]), "utf8"),
-          ),
-        );
-        this.registerServer(server);
-        await this.host.store.putRecord("server-registry", server.id, server);
-        return { registered: server.id };
-      }
-      return [
-        ...new Set(
-          this.catalog.flatMap((c) => c.candidates.map((t) => t.server)),
-        ),
-      ];
+      if (args.length) throw new Error("servers-is-read-only");
+      this.refresh();
+      return {
+        source: "Pi session MCP tools",
+        servers: this.discoveredServers,
+        ...(this.legacyRegistrationCount
+          ? {
+              legacyRegistrations: this.legacyRegistrationCount,
+              migration:
+                "Move these server entries to Pi's mcp.json; the old router records are retained but no longer registered.",
+            }
+          : {}),
+      };
     }
     if (action === "explain")
       return this.decision ?? { reason: "no-capabilities-requested" };
