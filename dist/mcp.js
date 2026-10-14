@@ -108,11 +108,16 @@ export function approvalValid(approval, tool, server, taskId, args) {
 }
 export class McpRouter {
     host;
+    modeDescriptions = {
+        auto: "Expose locally authorized tools that match the current task.",
+        observe: "Show capability decisions without changing active tools.",
+        off: "Disable automatic MCP tool selection.",
+    };
     menuGroups = {
         Capabilities: ["status"],
         Servers: ["servers"],
         Tools: ["tools", "explain"],
-        Settings: ["config", "doctor", "off"],
+        Settings: ["config", "doctor"],
     };
     capabilities = ["mcp.capability-route.v1", "mcp.policy.v1"];
     menu = ["status", "capabilities", "servers", "tools", "explain", "auto"];
