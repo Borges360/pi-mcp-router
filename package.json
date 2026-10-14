@@ -1,7 +1,7 @@
 {
   "name": "@borges360/pi-mcp-router",
-  "version": "0.1.0",
-  "description": "pi-mcp-router \u2014 independent, evidence-driven Pi extension",
+  "version": "0.1.1",
+  "description": "pi-mcp-router — independent, evidence-driven Pi extension",
   "type": "module",
   "license": "MIT",
   "engines": {
