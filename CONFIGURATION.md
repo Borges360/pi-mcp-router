@@ -45,28 +45,22 @@ explicitly allowlisted as environment variable names; auth.json is not inherited
 Gate command approval is an exact executable/argument tuple supplied by a user
 command. Artifact checks require an expected SHA-256. Human criteria require a
 user approval. No assistant claim or raw tool transcript can substitute a gate.
+Pi owns MCP server configuration. Add endpoints, credentials, enablement and tool
+exposure to Pi's user `~/.pi/agent/mcp.json` or project `.pi/mcp.json`, or manage
+them with Pi's `/mcp` command. `/mcprouter servers` reads the MCP tools currently
+loaded in the Pi session; it cannot show disabled, disconnected or empty servers
+because the extension API exposes the tool inventory, not the complete server
+configuration.
+
 MCP capabilities are authored through `capabilities add <json>`; all candidate
 permission and trust fields are explicit local policy. Approval binds tool, server,
-task, argument hash and expiry, and is consumed once. MCP `servers add <json>` uses
-id, url and optional headerEnv (header -> environment variable name); credentials
-are resolved in memory.
+task, argument hash and expiry, and is consumed once. The router does not copy
+server endpoints or credentials into its state.
+
+Older versions stored server entries under `server-registry`. These records are
+retained and ignored by this version. Move those entries to Pi's `mcp.json`; keep
+the router's capability definitions to preserve task-level policy.
 
 Project-owned numeric limits can reduce user/default ceilings, but cannot raise
 them. Skill/agent root access remains user-controlled. Disabled user integrations
 cannot be re-enabled by a project config.
-
-MCP server header references are normalized before persistence, for example:
-
-```json
-{
-  "id": "github",
-  "url": "https://example.test/mcp",
-  "headerEnv": [
-    { "header": "Authorization", "variable": "MCP_TOKEN", "prefix": "Bearer " }
-  ]
-}
-```
-
-The variable's value is resolved only in memory. URL userinfo and secret-bearing
-query parameters are rejected. The legacy header-to-variable map is accepted and
-normalized into this array representation.

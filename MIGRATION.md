@@ -1,5 +1,14 @@
 # Storage migration
 
+## MCP server configuration ownership
+
+Pi now owns MCP endpoints, credentials, enablement and exposure. Configure them in
+Pi's `~/.pi/agent/mcp.json` or `.pi/mcp.json`, or manage them with `/mcp`.
+`/mcprouter servers` lists tools Pi has loaded into the current session. The
+router's old `server-registry` records are retained but ignored; move any entries
+you still need into Pi's MCP configuration. Existing router capability records
+remain in place and continue to define local authorization policy.
+
 Schema version 1 is the initial format. Future/unknown schemas fail closed without
 resetting state. Downgrades are never automatic. Keep backups before upgrading.
 

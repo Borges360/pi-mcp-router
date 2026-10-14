@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 — 2026-10-14
+
+- Discover MCP servers and tools from Pi's loaded session inventory instead of
+  maintaining a second endpoint and credential registry.
+- Make `/mcprouter servers` a read-only inventory; retain old registry records and
+  report migration guidance without registering them.
+- Keep task capabilities and permission decisions local to the router.
+
 ## 0.1.2 — 2026-10-14
 
 +Use the shared English mode picker with a current-mode marker, concise descriptions and keyboard navigation.
