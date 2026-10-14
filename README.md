@@ -29,7 +29,7 @@ classifier or Durable installation is required for the default file backend.
 ## Use
 
 Run `/mcprouter` for the interactive menu, or `/mcprouter status` for structured
-headless output. Domain actions: `status, capabilities [add <json>], servers [add <json>], tools, explain, route <capability...>, check <capability...>, approve <approval.json>`. Shared actions: `auto`, `off`,
+headless output. Domain actions: `status, capabilities [add <json>], servers, tools, explain, route <capability...>, check <capability...>, approve <approval.json>`. Shared actions: `auto`, `off`,
 `observe`, `config`, `doctor`, `storage status`, `storage migrate files|sqlite|durable`.
 The CLI uses the same actions: `node dist/cli.js status`.
 TUI groups: Capabilities / Servers / Tools / Settings. Press Escape in a group
@@ -38,6 +38,12 @@ to return to the categories; Escape in the categories closes the menu. Settings
 explanation of each option. Use the arrow keys to choose, Enter to save, and
 Escape to return to Settings. Headless config returns validated settings. Edit
 the user config for advanced settings.
+
+Pi owns MCP server configuration and connections. Configure endpoints, credentials
+and exposure in Pi's `mcp.json` or `/mcp`; `/mcprouter servers` is a read-only
+inventory of MCP tools currently loaded in the Pi session. The router stores only
+its local capability and permission policies. Disconnected, disabled or empty
+servers may not appear until Pi loads their tools.
 
 Default state: `~/.pi/agent/state/pi-mcp-router/projects/<sha256-of-canonical-repository-root>/`.
 `PI_ECOSYSTEM_STATE_ROOT` changes the parent state directory for testing or deployment.

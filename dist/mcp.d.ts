@@ -9,17 +9,6 @@ export interface ToolCandidate {
     trusted: boolean;
     available: boolean;
 }
-export interface ServerRegistration {
-    schemaVersion: 1;
-    id: string;
-    url: string;
-    headerEnv: Array<{
-        header: string;
-        variable: string;
-        prefix?: string;
-    }>;
-}
-export declare function normalizeServerRegistration(value: unknown): ServerRegistration;
 export interface CapabilityDefinition {
     schemaVersion: 1;
     id: string;
@@ -90,12 +79,12 @@ export declare class McpRouter implements Service {
     private taskId;
     private originalTools;
     private managed;
-    private registered;
+    private discoveredServers;
+    private legacyRegistrationCount;
     private failures;
     private activeTask?;
     constructor(host: Host);
     start(): Promise<void>;
-    registerServer(input: unknown): void;
     refresh(): void;
     close(): Promise<void>;
     route(requested: string[]): Promise<ToolExposureDecision>;
