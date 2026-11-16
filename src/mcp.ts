@@ -185,10 +185,32 @@ export class McpRouter implements Service {
     off: "Disable automatic MCP tool selection.",
   };
   menuGroups = {
-    Capabilities: ["status"],
+    Capabilities: ["status", "capabilities", "capabilities add"],
     Servers: ["servers"],
-    Tools: ["tools", "explain"],
-    Settings: ["config", "doctor"],
+    Tools: ["tools", "explain", "route", "check", "approve"],
+    Settings: ["config", "mode", "language", "doctor", "auto", "observe", "off"],
+    Storage: ["storage status", "storage migrate"],
+  };
+  menuInputs = {
+    "capabilities add": "Capability definition file",
+    route: "Capability IDs to route (space-separated)",
+    check: "Capability IDs to check (space-separated)",
+    approve: "Approval request file",
+    "storage migrate": "Target backend (files, sqlite, durable)",
+  };
+  menuConfirmations = {
+    "capabilities add":
+      "Read this capability definition and save it to the local MCP Router catalog?",
+    route:
+      "Record a local routing decision and update this Pi session's active tools according to the current policy?",
+    check:
+      "Record a local routing decision and update this Pi session's active tools according to the current policy?",
+    approve:
+      "Create a local, task-scoped approval from this approval request file?",
+    doctor:
+      "Run local recovery diagnostics? Recovery may update local store metadata.",
+    "storage migrate":
+      "Copy the local MCP Router store to the selected backend and switch its local pointer?",
   };
   capabilities = ["mcp.capability-route.v1", "mcp.policy.v1"];
   menu = ["status", "capabilities", "servers", "tools", "explain", "auto"];

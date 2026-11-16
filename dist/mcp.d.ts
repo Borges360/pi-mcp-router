@@ -71,6 +71,22 @@ export declare class McpRouter implements Service {
         Servers: string[];
         Tools: string[];
         Settings: string[];
+        Storage: string[];
+    };
+    menuInputs: {
+        "capabilities add": string;
+        route: string;
+        check: string;
+        approve: string;
+        "storage migrate": string;
+    };
+    menuConfirmations: {
+        "capabilities add": string;
+        route: string;
+        check: string;
+        approve: string;
+        doctor: string;
+        "storage migrate": string;
     };
     capabilities: string[];
     menu: string[];
